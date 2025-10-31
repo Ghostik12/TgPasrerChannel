@@ -1,7 +1,6 @@
-﻿using TgPars.Models;
-using Microsoft.EntityFrameworkCore;
-using TgPars.DB;
-using TgPars.Services;
+﻿
+
+using TL;
 
 namespace TelegramClientParser
 {
@@ -9,32 +8,35 @@ namespace TelegramClientParser
     {
         static async Task Main(string[] args)
         {
-            // Конфигурация
-            const string apiId = "ВАШ_API_ID"; // Например, 1234567
-            const string apiHash = "ВАШ_API_HASH"; // Например, 01234abcdef56789abcdef0123456789
-            const string phoneNumber = "+ВАШ_НОМЕР_ТЕЛЕФОНА"; // Например, +1234567890
-            const string adminUserId = "ВАШ_USER_ID"; // Ваш Telegram ID
+            const int apiId = ;
+            const string apiHash = "";
+            WTelegram.Client client = new WTelegram.Client(apiId, apiHash);
+            var myself = await client.LoginUserIfNeeded();
+            Console.WriteLine($"We are logged-in as {myself} (id {myself.id})");
+            await DoLogin("");
 
-            // Настройка базы данных
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlite("Data Source=parserbot.db")
-                .Options;
+            async Task DoLogin(string loginInfo)
+            {
+                while (client.User == null)
+                    switch (await client.Login(loginInfo))
+                    {
+                        case "verification_code":
+                            Console.WriteLine("Code:");
+                            loginInfo = Console.ReadLine();
+                            break;
+                        default:
+                            loginInfo = null;
+                            break;
+                    }
+                Console.WriteLine($"We are logged-in as {client.User} (id {client.User.id})");
 
-            using var dbContext = new AppDbContext(options);
-            await dbContext.Database.EnsureCreatedAsync();
-
-            // Инициализация сервисов
-            var dbService = new DatabaseService(dbContext);
-            var client = new WTelegram.Client();
-            var messageHandler = new MessageHandler(client, dbService, adminUserId, null); // Временный null, user установим позже
-            var telegramService = new TelegramClientService(apiId, apiHash, phoneNumber, messageHandler);
-
-            // Запуск
-            var user = await telegramService.StartAsync();
-            messageHandler = new MessageHandler(client, dbService, adminUserId, user); // Обновляем handler с user
-
-            // Держим приложение открытым
-            Console.ReadLine();
+                var chats = await client.Messages_GetAllChats();
+                var dialogs = await client.Messages_GetAllDialogs();
+                Console.WriteLine("This user has joined the following:");
+                foreach (Dialog dialog in dialogs.dialogs)
+                        Console.WriteLine($"{dialog.top_message,10}: {dialog.folder_id}");
+                Console.Write("Type a chat ID to send a message: ");
+            }
         }
     }
 }
