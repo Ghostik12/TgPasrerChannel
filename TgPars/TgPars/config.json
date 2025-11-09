@@ -1,0 +1,9 @@
+{
+  "api_id": 123456,
+  "api_hash": "your_api_hash_here",
+  "phone_number": "+79123456789",
+  "notification_chat": "me",
+  "min_delay_ms": 2000,
+  "max_delay_ms": 5000,
+  "log_level": "Info"
+}
